@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Contact Management System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f6f8;
+            color: #222;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        .primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .success {
+            background: #16a34a;
+            color: white;
+        }
+
+        .danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+        }
+
+        .status {
+            padding: 10px;
+            background: #ecfdf5;
+            color: #166534;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        pre {
+            background: #111827;
+            color: #e5e7eb;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            min-height: 100px;
+        }
+
+        .actions {
+            margin-top: 15px;
+        }
+
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 15px;
+            }
+
+            table {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Contact Management System</h1>
+
+    <p class="subtitle">
+        Node.js + Express + MongoDB
+    </p>
+
+
+    <!-- API STATUS -->
+    <div class="card">
+
+        <h2>API Status</h2>
+
+        <div id="status" class="status">
+            Checking API...
+        </div>
+
+    </div>
+
+
+    <!-- CONTACT FORM -->
+    <div class="card">
+
+        <h2>Add / Update Contact</h2>
+
+        <div class="form-grid">
+
+            <input
+                type="text"
+                id="contactId"
+                placeholder="Contact ID (Example: C001)"
+            >
+
+            <input
+                type="text"
+                id="name"
+                placeholder="Name"
+            >
+
+            <input
+                type="text"
+                id="phone"
+                placeholder="10-digit Phone Number"
+            >
+
+            <input
+                type="email"
+                id="email"
+                placeholder="Email"
+            >
+
+        </div>
+
+        <div class="actions">
+
+            <button class="primary" onclick="createContact()">
+                Add Contact
+            </button>
+
+            <button class="success" onclick="updateContact()">
+                Update Contact
+            </button>
+
+            <button class="secondary" onclick="clearForm()">
+                Clear
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- CONTACT LIST -->
+    <div class="card">
+
+        <h2>Current Contacts</h2>
+
+        <button class="primary" onclick="getContacts()">
+            Refresh Contacts
+        </button>
+
+        <div style="overflow-x:auto;">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Contact ID</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="contactTable">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- API RESPONSE -->
+    <div class="card">
+
+        <h2>Current API Response</h2>
+
+        <p id="responseStatus">
+            No API request made yet.
+        </p>
+
+        <br>
+
+        <pre id="apiResponse">API response will appear here...</pre>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // ==========================================
+    // API BASE URL
+    // ==========================================
+
+    const API_URL = "/contacts";
+
+
+    // ==========================================
+    // DISPLAY API RESPONSE
+    // ==========================================
+
+    function showResponse(status, data) {
+
+        document.getElementById("responseStatus").innerText =
+            "HTTP Status: " + status;
+
+        document.getElementById("apiResponse").textContent =
+            JSON.stringify(data, null, 4);
+    }
+
+
+    // ==========================================
+    // CHECK API
+    // ==========================================
+
+    async function checkAPI() {
+
+        try {
+
+            const response = await fetch("/");
+
+            const data = await response.json();
+
+            document.getElementById("status").innerText =
+                "API Connected: " + data.message;
+
+        } catch (error) {
+
+            document.getElementById("status").innerText =
+                "API connection failed";
+
+            document.getElementById("status").style.background =
+                "#fee2e2";
+
+            document.getElementById("status").style.color =
+                "#991b1b";
+        }
+    }
+
+
+    // ==========================================
+    // GET ALL CONTACTS
+    // ==========================================
+
+    async function getContacts() {
+
+        try {
+
+            const response = await fetch(API_URL);
+
+            const data = await response.json();
+
+            showResponse(response.status, data);
+
+            displayContacts(data.data || []);
+
+        } catch (error) {
+
+            showResponse(500, {
+                success: false,
+                message: error.message
+            });
+        }
+    }
+
+
+    // ==========================================
+    // DISPLAY CONTACTS
+    // ==========================================
+
+    function displayContacts(contacts) {
+
+        const table = document.getElementById("contactTable");
+
+        table.innerHTML = "";
+
+        if (contacts.length === 0) {
+
+            table.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        No contacts found
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        contacts.forEach(contact => {
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+
+                <td>${contact.contactId}</td>
+
+                <td>${contact.name}</td>
+
+                <td>${contact.phone}</td>
+
+                <td>${contact.email}</td>
+
+                <td>
+
+                    <button
+                        class="success"
+                        onclick="loadContact('${contact.contactId}')">
+                        Edit
+                    </button>
+
+                    <button
+                        class="danger"
+                        onclick="deleteContact('${contact.contactId}')">
+                        Delete
+                    </button>
+
+                </td>
+
+            `;
+
+            table.appendChild(row);
+
+        });
+    }
+
+
+    // ==========================================
+    // CREATE CONTACT
+    // ==========================================
+
+    async function createContact() {
+
+        const contact = {
+
+            contactId:
+                document.getElementById("contactId").value,
+
+            name:
+                document.getElementById("name").value,
+
+            phone:
+                document.getElementById("phone").value,
+
+            email:
+                document.getElementById("email").value
+
+        };
+
+
+        try {
+
+            const response = await fetch(API_URL, {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(contact)
+
+            });
+
+
+            const data = await response.json();
+
+            showResponse(response.status, data);
+
+            if (response.ok) {
+
+                clearForm();
+
+                getContacts();
+
+            }
+
+        } catch (error) {
+
+            showResponse(500, {
+                success: false,
+                message: error.message
+            });
+
+        }
+
+    }
+
+
+    // ==========================================
+    // GET ONE CONTACT
+    // ==========================================
+
+    async function loadContact(contactId) {
+
+        try {
+
+            const response =
+                await fetch(`${API_URL}/${contactId}`);
+
+            const result =
+                await response.json();
+
+            showResponse(response.status, result);
+
+
+            if (response.ok) {
+
+                const contact = result.data;
+
+                document.getElementById("contactId").value =
+                    contact.contactId;
+
+                document.getElementById("name").value =
+                    contact.name;
+
+                document.getElementById("phone").value =
+                    contact.phone;
+
+                document.getElementById("email").value =
+                    contact.email;
+
+            }
+
+        } catch (error) {
+
+            showResponse(500, {
+                success: false,
+                message: error.message
+            });
+
+        }
+
+    }
+
+
+    // ==========================================
+    // UPDATE CONTACT
+    // ==========================================
+
+    async function updateContact() {
+
+        const contactId =
+            document.getElementById("contactId").value;
+
+
+        if (!contactId) {
+
+            alert("Enter Contact ID");
+
+            return;
+
+        }
+
+
+        const contact = {
+
+            name:
+                document.getElementById("name").value,
+
+            phone:
+                document.getElementById("phone").value,
+
+            email:
+                document.getElementById("email").value
+
+        };
+
+
+        try {
+
+            const response = await fetch(
+                `${API_URL}/${contactId}`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(contact)
+                }
+            );
+
+
+            const data = await response.json();
+
+            showResponse(response.status, data);
+
+
+            if (response.ok) {
+
+                getContacts();
+
+            }
+
+        } catch (error) {
+
+            showResponse(500, {
+                success: false,
+                message: error.message
+            });
+
+        }
+
+    }
+
+
+    // ==========================================
+    // DELETE CONTACT
+    // ==========================================
+
+    async function deleteContact(contactId) {
+
+        if (!confirm(
+            "Are you sure you want to delete " +
+            contactId +
+            "?"
+        )) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(`${API_URL}/${contactId}`, {
+
+                    method: "DELETE"
+
+                });
+
+
+            const data = await response.json();
+
+            showResponse(response.status, data);
+
+            getContacts();
+
+        } catch (error) {
+
+            showResponse(500, {
+                success: false,
+                message: error.message
+            });
+
+        }
+
+    }
+
+
+    // ==========================================
+    // CLEAR FORM
+    // ==========================================
+
+    function clearForm() {
+
+        document.getElementById("contactId").value = "";
+
+        document.getElementById("name").value = "";
+
+        document.getElementById("phone").value = "";
+
+        document.getElementById("email").value = "";
+
+    }
+
+
+    // ==========================================
+    // INITIAL LOAD
+    // ==========================================
+
+    checkAPI();
+
+    getContacts();
+
+</script>
+
+</body>
+</html>
